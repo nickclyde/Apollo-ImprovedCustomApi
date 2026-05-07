@@ -4390,14 +4390,20 @@ static void ApolloFeedVCInstallGlobe(UIViewController *vc) {
             ApolloClearVisibleTranslationApplied(vc);
             sPendingVisibleFeedTitleApplied = NO;
         }
-    } else if (![objc_getAssociatedObject(vc, kApolloThreadTranslatedModeKey) boolValue] &&
-               ![objc_getAssociatedObject(vc, kApolloThreadOriginalModeKey) boolValue]) {
-        objc_setAssociatedObject(vc, kApolloThreadTranslatedModeKey, @YES, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
-        sLastFeedTitleModeKnown = YES;
-        sLastFeedTitleTranslatedMode = YES;
     } else {
+        // No explicit per-feed preference (user hasn't tapped the globe on
+        // this feed). Always (re)apply the current global default so toggling
+        // "Auto Translate by Default" takes effect on next visit even for VCs
+        // still alive in memory from a previous install.
+        BOOL defaultTranslated = sAutoTranslateOnAppear;
+        objc_setAssociatedObject(vc, kApolloThreadTranslatedModeKey, @(defaultTranslated), OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+        objc_setAssociatedObject(vc, kApolloThreadOriginalModeKey, @(!defaultTranslated), OBJC_ASSOCIATION_RETAIN_NONATOMIC);
         sLastFeedTitleModeKnown = YES;
-        sLastFeedTitleTranslatedMode = ApolloControllerIsInTranslatedMode(vc);
+        sLastFeedTitleTranslatedMode = defaultTranslated;
+        if (!defaultTranslated) {
+            ApolloClearVisibleTranslationApplied(vc);
+            sPendingVisibleFeedTitleApplied = NO;
+        }
     }
     if (!alreadyMarked) {
         ApolloLog(@"[Translation] InstallGlobe class=%@ ptr=%p title='%@'",
