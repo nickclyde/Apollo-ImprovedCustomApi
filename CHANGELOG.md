@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v2.7.1] - 2026-05-06
+
+- Bulk translation: fix post titles getting automatically translated when Auto Translate is off
+
 ## [v2.7.0] - 2026-05-05
 
 - New **Tag Filters** feature to blur NSFW and/or Spoiler posts (including titles) in feeds (thanks @icpryde for implementing this!)
@@ -329,6 +333,7 @@ There are currently a few limitations:
 ## [v1.0.0] - 2023-10-13
 - Initial release
 
+[v2.7.1]: https://github.com/JeffreyCA/Apollo-ImprovedCustomApi/compare/v2.7.0...v2.7.1
 [v2.7.0]: https://github.com/JeffreyCA/Apollo-ImprovedCustomApi/compare/v2.6.1...v2.7.0
 [v2.6.1]: https://github.com/JeffreyCA/Apollo-ImprovedCustomApi/compare/v2.6.0...v2.6.1
 [v2.6.0]: https://github.com/JeffreyCA/Apollo-ImprovedCustomApi/compare/v2.5.0...v2.6.0
