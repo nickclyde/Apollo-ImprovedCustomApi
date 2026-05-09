@@ -18,6 +18,7 @@ ApolloImprovedCustomApi_FILES = \
     ApolloCommon.m \
     ApolloRedditMediaUpload.m \
     ApolloImageUploadHost.xm \
+    ApolloCreatedAtAlert.xm \
     ApolloState.m \
     ApolloShareLinks.xm \
     ApolloMedia.xm \
