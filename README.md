@@ -91,6 +91,8 @@ You can use `patch.sh` or the GitHub action mentioned below to add URL schemes.
 
 `patch.sh` and the **Patch IPA** GitHub Action can apply optional patches (Liquid Glass for iOS 26, custom URL schemes) to Apollo IPAs. These do **not** inject the tweak itself.
 
+The Liquid Glass patch now also replaces Apollo's compiled `Assets.car` with a prebuilt catalog that includes the `ApolloLiquidGlass` app icon, and updates the primary app icon name in `Info.plist`.
+
 ```bash
 ./patch.sh <path_to_ipa> [--liquid-glass] [--url-schemes <schemes>] [--remove-code-signature] [-o <output>]
 ```
