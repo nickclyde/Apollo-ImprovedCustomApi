@@ -33,6 +33,7 @@ ApolloImprovedCustomApi_FILES = \
     ApolloVideoSwipeFix.xm \
     ApolloTagFilters.xm \
     ApolloInlineImages.xm \
+    ApolloHideNextParentButton.xm \
     CustomAPIViewController.m \
     TranslationSettingsViewController.m \
     SavedCategoriesViewController.m \

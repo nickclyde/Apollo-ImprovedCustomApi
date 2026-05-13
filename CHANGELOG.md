@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## Unreleased
+
+- Liquid Glass: **Hide Bars on Scroll** now uses the native iOS 26 tab bar minimize behavior (`.onScrollDown`) so the tab bar collapses into the small Liquid Glass pill on scroll-down and re-expands on scroll-up, matching Apple Music/Photos. Nav bar stays visible (true Liquid Glass feel). iOS <26 keeps the existing nav+tab bar mirror behavior.
+- Liquid Glass: keep native tab bar auto-hide active after opening and dismissing images, videos, links, and fullscreen media viewers.
+- New **Hide Next Parent Button** toggle in **Settings > Custom API > General** to hide the floating circular button in the bottom-right of the comments view that scrolls to the next parent comment.
+
 ## [v2.9.0] - 2026-05-11
 
 - New **Inline Media Previews** option to render images, GIFs, and videos inline within posts and comments
