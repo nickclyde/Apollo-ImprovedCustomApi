@@ -867,6 +867,7 @@ static void initializeRandomSources() {
                                     UDKeyProxyImgurDDG: @NO,
                                     UDKeyEnableInlineImages: @YES,
                                     UDKeyImageUploadProvider: @(ImageUploadProviderImgur),
+                                    UDKeyShowUserAvatars: @NO,
                                     UDKeyEnableBulkTranslation: @NO,
                                     UDKeyAutoTranslateOnAppear: @YES,
                                     UDKeyTranslatePostTitles: @NO,
@@ -894,6 +895,7 @@ static void initializeRandomSources() {
     sProxyImgurDDG = [[NSUserDefaults standardUserDefaults] boolForKey:UDKeyProxyImgurDDG];
     sEnableInlineImages = [[NSUserDefaults standardUserDefaults] boolForKey:UDKeyEnableInlineImages];
     sImageUploadProvider = [[NSUserDefaults standardUserDefaults] integerForKey:UDKeyImageUploadProvider];
+    sShowUserAvatars = [[NSUserDefaults standardUserDefaults] boolForKey:UDKeyShowUserAvatars];
     sEnableBulkTranslation = [[NSUserDefaults standardUserDefaults] boolForKey:UDKeyEnableBulkTranslation];
     sAutoTranslateOnAppear = [[NSUserDefaults standardUserDefaults] boolForKey:UDKeyAutoTranslateOnAppear];
     sTranslatePostTitles = [[NSUserDefaults standardUserDefaults] boolForKey:UDKeyTranslatePostTitles];
