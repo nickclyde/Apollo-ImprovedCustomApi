@@ -8,6 +8,7 @@
 #import "ApolloCommon.h"
 #import "ApolloRedditMediaUpload.h"
 #import "ApolloImageUploadHost.h"
+#import "ApolloNotificationBackend.h"
 #import "ApolloState.h"
 #import "Tweak.h"
 #import "CustomAPIViewController.h"
@@ -640,6 +641,18 @@ static void StripRapidAPIHeaders(NSMutableURLRequest *request) {
         request = currentRequest;
     }
 
+    // Self-hosted notification backend rewrite. When the user has configured a
+    // URL, redirect requests targeting the three legacy Apollo push hosts to
+    // their own backend before the blocklist drops them. With no URL set this
+    // returns nil and the legacy block-and-drop behavior below applies.
+    NSURLRequest *notifBackendRequest = ApolloRewriteRequestForNotificationBackend(request);
+    if (notifBackendRequest) {
+        [self setValue:notifBackendRequest forKey:@"_originalRequest"];
+        [self setValue:notifBackendRequest forKey:@"_currentRequest"];
+        %orig;
+        return;
+    }
+
     NSURL *requestURL = request.URL;
     NSString *requestString = requestURL.absoluteString;
 
@@ -879,10 +892,14 @@ static void initializeRandomSources() {
                                     UDKeyTagFilterMode: @"blur",
                                     UDKeyTagFilterNSFW: @YES,
                                     UDKeyTagFilterSpoiler: @YES,
-                                    UDKeyTagFilterSubredditOverrides: @{}};
+                                    UDKeyTagFilterSubredditOverrides: @{},
+                                    UDKeyNotificationBackendURL: @"",
+                                    UDKeyNotificationBackendRegistrationToken: @"",
+                                    UDKeyRedditClientSecret: @""};
     [[NSUserDefaults standardUserDefaults] registerDefaults:defaultValues];
 
     sRedditClientId = (NSString *)[[[NSUserDefaults standardUserDefaults] objectForKey:UDKeyRedditClientId] ?: @"" copy];
+    sRedditClientSecret = (NSString *)[[[NSUserDefaults standardUserDefaults] objectForKey:UDKeyRedditClientSecret] ?: @"" copy];
     sImgurClientId = (NSString *)[[[NSUserDefaults standardUserDefaults] objectForKey:UDKeyImgurClientId] ?: @"" copy];
     sRedirectURI = (NSString *)[[[NSUserDefaults standardUserDefaults] objectForKey:UDKeyRedirectURI] ?: @"" copy];
     sUserAgent = (NSString *)[[[NSUserDefaults standardUserDefaults] objectForKey:UDKeyUserAgent] ?: @"" copy];

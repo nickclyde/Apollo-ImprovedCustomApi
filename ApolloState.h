@@ -1,6 +1,7 @@
 #import <Foundation/Foundation.h>
 
 extern NSString *sRedditClientId;
+extern NSString *sRedditClientSecret;
 extern NSString *sImgurClientId;
 extern NSString *sRedirectURI;
 extern NSString *sUserAgent;

@@ -1,6 +1,7 @@
 #import "ApolloState.h"
 
 NSString *sRedditClientId = nil;
+NSString *sRedditClientSecret = nil;
 NSString *sImgurClientId = nil;
 NSString *sRedirectURI = nil;
 NSString *sUserAgent = nil;

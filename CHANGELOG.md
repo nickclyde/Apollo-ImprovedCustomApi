@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+- Optional **Notification Backend** support: point Apollo at your own forked self-hosted [apollo-backend](https://github.com/christianselig/apollo-backend) instance so push registrations, watchers, and inbox checks route there instead of being silently dropped. Configure in **Settings > Custom API > Notification Backend** with the backend URL and optional registration token. Leave empty to keep current blocking behavior. APNs delivery still requires a paid Apple Developer account on the signing side.
+- New **Reddit API Secret** field in **Settings > Custom API > API Keys** so per-account Reddit credentials can be forwarded to a self-hosted notification backend that performs token refreshes server-side. Usually left empty for installed-app Reddit credentials.
+
 ## [v2.11.0] - 2026-05-15
 
 - **Liquid Glass app icons!** Apollo's native App Icon picker now ships with 4 community-designed Liquid Glass app icons that render with full iOS 26 Liquid Glass effects on the home screen
@@ -120,7 +123,7 @@ All notable changes to this project will be documented in this file.
 
 The Custom API settings view has also been redesigned and is now accessible directly from Settings.
 
-**Note:** Ultra features that rely on push notifications **still do not work**, and are unlikely to ever be supported.
+**Note:** Ultra features that rely on push notifications do not work out of the box. Advanced users can optionally point the tweak at a self-hosted [apollo-backend](https://github.com/christianselig/apollo-backend) fork (see **Settings > Custom API > Notification Backend**) — APNs delivery requires a paid Apple Developer account on the signing side.
 
 | | | |
 |:--:|:--:|:--:|

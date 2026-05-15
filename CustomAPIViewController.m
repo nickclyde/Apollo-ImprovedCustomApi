@@ -1,5 +1,6 @@
 #import "CustomAPIViewController.h"
 #import "ApolloCommon.h"
+#import "ApolloNotificationBackend.h"
 #import "ApolloState.h"
 #import "UserDefaultConstants.h"
 #import <UniformTypeIdentifiers/UniformTypeIdentifiers.h>
@@ -15,6 +16,7 @@ typedef NS_ENUM(NSInteger, SectionIndex) {
     SectionGeneral,
     SectionMedia,
     SectionSubreddits,
+    SectionNotificationBackend,
     SectionCredits,
     SectionAbout,
     SectionCount
@@ -24,6 +26,7 @@ typedef NS_ENUM(NSInteger, SectionIndex) {
 
 typedef NS_ENUM(NSInteger, Tag) {
     TagRedditClientId = 0,
+    TagRedditClientSecret,
     TagImgurClientId,
     TagRedirectURI,
     TagUserAgent,
@@ -32,6 +35,8 @@ typedef NS_ENUM(NSInteger, Tag) {
     TagRandNsfwSubredditsSource,
     TagTrendingLimit,
     TagReadPostMaxCount,
+    TagNotificationBackendURL,
+    TagNotificationBackendRegistrationToken,
 };
 
 #pragma mark - Helpers
@@ -239,10 +244,11 @@ typedef NS_ENUM(NSInteger, Tag) {
 - (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section {
     switch (section) {
         case SectionBackupRestore: return 2;
-        case SectionAPIKeys: return 6; // 4 text fields + Can't sign in? + Instructions
+        case SectionAPIKeys: return 7; // 5 text fields + Can't sign in? + Instructions
         case SectionGeneral: return 7;
         case SectionMedia: return 6;
         case SectionSubreddits: return 5;
+        case SectionNotificationBackend: return 3; // URL + Registration Token + Test Connection
         case SectionAbout: return 3; // GitHub repo link + version + export logs
         case SectionCredits: return 3;
         default: return 0;
@@ -256,6 +262,7 @@ typedef NS_ENUM(NSInteger, Tag) {
         case SectionGeneral: return @"General";
         case SectionMedia: return @"Media";
         case SectionSubreddits: return @"Subreddits";
+        case SectionNotificationBackend: return @"Notification Backend";
         case SectionAbout: return @"About";
         case SectionCredits: return @"Credits";
         default: return nil;
@@ -269,6 +276,7 @@ typedef NS_ENUM(NSInteger, Tag) {
         case SectionGeneral: return [self generalCellForRow:indexPath.row tableView:tableView];
         case SectionMedia: return [self mediaCellForRow:indexPath.row tableView:tableView];
         case SectionSubreddits: return [self subredditCellForRow:indexPath.row tableView:tableView];
+        case SectionNotificationBackend: return [self notificationBackendCellForRow:indexPath.row tableView:tableView];
         case SectionAbout: return [self aboutCellForRow:indexPath.row tableView:tableView];
         case SectionCredits: return [self creditsCellForRow:indexPath.row tableView:tableView];
         default: return [[UITableViewCell alloc] init];
@@ -449,13 +457,20 @@ typedef NS_ENUM(NSInteger, Tag) {
                                                  tag:TagRedditClientId
                                            numerical:NO];
         case 1:
+            return [self textFieldCellWithIdentifier:@"Cell_API_RedditSecret"
+                                               label:@"Reddit API Secret"
+                                         placeholder:@"(usually empty)"
+                                                text:sRedditClientSecret
+                                                 tag:TagRedditClientSecret
+                                           numerical:NO];
+        case 2:
             return [self textFieldCellWithIdentifier:@"Cell_API_Imgur"
                                                label:@"Imgur API Key"
                                          placeholder:@"Imgur API Key"
                                                 text:sImgurClientId
                                                  tag:TagImgurClientId
                                            numerical:NO];
-        case 2: {
+        case 3: {
             NSString *schemesDetail = [NSString stringWithFormat:@"Must match the app whose API key you're using. URI scheme (part before ://) must be registered in Info.plist under CFBundleURLTypes. Registered: %@", [[self registeredURLSchemes] componentsJoinedByString:@", "]];
             UITableViewCell *cell = [self stackedTextFieldCellWithIdentifier:@"Cell_API_Redirect"
                                                                       label:@"Redirect URI"
@@ -473,13 +488,13 @@ typedef NS_ENUM(NSInteger, Tag) {
             }
             return cell;
         }
-        case 3:
+        case 4:
             return [self stackedTextFieldCellWithIdentifier:@"Cell_API_UserAgent"
                                                       label:@"User Agent"
                                                 placeholder:defaultUserAgent
                                                        text:sUserAgent
                                                         tag:TagUserAgent];
-        case 4: {
+        case 5: {
             UITableViewCell *cell = [self.tableView dequeueReusableCellWithIdentifier:@"Cell_Troubleshooting"];
             if (!cell) {
                 cell = [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleDefault reuseIdentifier:@"Cell_Troubleshooting"];
@@ -488,7 +503,7 @@ typedef NS_ENUM(NSInteger, Tag) {
             cell.textLabel.text = @"Can't sign in?";
             return cell;
         }
-        case 5: {
+        case 6: {
             UITableViewCell *cell = [self.tableView dequeueReusableCellWithIdentifier:@"Cell_Instructions"];
             if (!cell) {
                 cell = [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleDefault reuseIdentifier:@"Cell_Instructions"];
@@ -640,6 +655,56 @@ typedef NS_ENUM(NSInteger, Tag) {
     }
 }
 
+- (UITableViewCell *)notificationBackendCellForRow:(NSInteger)row tableView:(UITableView *)tableView {
+    if (row == 0) {
+        NSString *currentURL = [[NSUserDefaults standardUserDefaults] stringForKey:UDKeyNotificationBackendURL] ?: @"";
+        UITableViewCell *cell = [self stackedTextFieldCellWithIdentifier:@"Cell_NotifBackend_URL"
+                                                                   label:@"Backend URL"
+                                                             placeholder:@"https://apollo.example.com"
+                                                                    text:currentURL
+                                                                     tag:TagNotificationBackendURL
+                                                                  detail:@"Self-hosted only. Leave empty to disable."];
+        for (UIView *subview in cell.contentView.subviews) {
+            if ([subview isKindOfClass:[UITextField class]]) {
+                UITextField *tf = (UITextField *)subview;
+                tf.keyboardType = UIKeyboardTypeURL;
+                tf.textColor = [self isNotificationBackendURLValid:currentURL] ? [UIColor labelColor] : [UIColor systemRedColor];
+                break;
+            }
+        }
+        return cell;
+    }
+
+    if (row == 1) {
+        NSString *currentToken = [[NSUserDefaults standardUserDefaults] stringForKey:UDKeyNotificationBackendRegistrationToken] ?: @"";
+        return [self stackedTextFieldCellWithIdentifier:@"Cell_NotifBackend_Token"
+                                                  label:@"Registration Token"
+                                            placeholder:@"(optional)"
+                                                   text:currentToken
+                                                    tag:TagNotificationBackendRegistrationToken
+                                                 detail:@"Required only if the backend has REGISTRATION_SECRET set."];
+    }
+
+    UITableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:@"Cell_NotifBackend_Test"];
+    if (!cell) {
+        cell = [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleDefault reuseIdentifier:@"Cell_NotifBackend_Test"];
+        cell.textLabel.textAlignment = NSTextAlignmentCenter;
+        cell.selectionStyle = UITableViewCellSelectionStyleDefault;
+    }
+    cell.textLabel.text = @"Test Connection";
+    cell.textLabel.textColor = self.view.tintColor;
+    return cell;
+}
+
+- (BOOL)isNotificationBackendURLValid:(NSString *)urlString {
+    if (urlString.length == 0) return YES; // empty = disabled, treated as valid
+    NSURL *url = [NSURL URLWithString:urlString];
+    if (!url) return NO;
+    NSString *scheme = url.scheme.lowercaseString;
+    if (![scheme isEqualToString:@"http"] && ![scheme isEqualToString:@"https"]) return NO;
+    return url.host.length > 0;
+}
+
 - (UITableViewCell *)backupRestoreCellForRow:(NSInteger)row tableView:(UITableView *)tableView {
     UITableViewCell *cell = [self.tableView dequeueReusableCellWithIdentifier:@"Cell_Backup"];
     if (!cell) {
@@ -754,6 +819,14 @@ typedef NS_ENUM(NSInteger, Tag) {
         text = [[NSMutableAttributedString alloc]
             initWithString:@"Image Upload Host selects where Apollo uploads images attached to posts and comments. \"Reddit\" is experimental and does not support multi-image or video uploads.\n\nProxying routes Imgur image requests through DuckDuckGo to bypass regional blocks; albums and uploads are unsupported by the proxy."
             attributes:plainAttrs];
+    } else if (section == SectionNotificationBackend) {
+        text = [[NSMutableAttributedString alloc]
+            initWithString:@"For users running their own "
+            attributes:plainAttrs];
+        [text appendAttributedString:[[NSAttributedString alloc] initWithString:@"forked apollo-backend"
+            attributes:@{NSFontAttributeName: [UIFont systemFontOfSize:13], NSLinkAttributeName: [NSURL URLWithString:@"https://github.com/christianselig/apollo-backend"]}]];
+        [text appendAttributedString:[[NSAttributedString alloc] initWithString:@" instance. Requires a paid Apple Developer account on the signing side for APNs to function. Leave empty to disable."
+            attributes:plainAttrs]];
     } else {
         return nil;
     }
@@ -809,9 +882,9 @@ typedef NS_ENUM(NSInteger, Tag) {
             [self restoreSettings];
         }
     } else if (indexPath.section == SectionAPIKeys) {
-        if (indexPath.row == 4) {
+        if (indexPath.row == 5) {
             [self pushTroubleshootingViewController];
-        } else if (indexPath.row == 5) {
+        } else if (indexPath.row == 6) {
             [self pushInstructionsViewController];
         }
     } else if (indexPath.section == SectionAbout) {
@@ -841,15 +914,45 @@ typedef NS_ENUM(NSInteger, Tag) {
                 [[UIApplication sharedApplication] openURL:[NSURL URLWithString:@"https://github.com/ichitaso/ApolloPatcher"] options:@{} completionHandler:nil];
                 break;
         }
+    } else if (indexPath.section == SectionNotificationBackend && indexPath.row == 2) {
+        [self testNotificationBackendConnection];
     }
+}
+
+- (void)testNotificationBackendConnection {
+    if (!ApolloIsNotificationBackendConfigured()) {
+        [self showAlertWithTitle:@"Backend URL Required" message:@"Enter a self-hosted apollo-backend URL above before testing."];
+        return;
+    }
+
+    UIAlertController *spinner = [UIAlertController alertControllerWithTitle:@"Testing connection…"
+                                                                     message:@"\n"
+                                                              preferredStyle:UIAlertControllerStyleAlert];
+    UIActivityIndicatorView *indicator = [[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleMedium];
+    indicator.translatesAutoresizingMaskIntoConstraints = NO;
+    [indicator startAnimating];
+    [spinner.view addSubview:indicator];
+    [NSLayoutConstraint activateConstraints:@[
+        [indicator.centerXAnchor constraintEqualToAnchor:spinner.view.centerXAnchor],
+        [indicator.bottomAnchor constraintEqualToAnchor:spinner.view.bottomAnchor constant:-20],
+    ]];
+
+    [self presentViewController:spinner animated:YES completion:^{
+        ApolloTestNotificationBackendConnection(^(BOOL ok, NSString *message) {
+            [spinner dismissViewControllerAnimated:YES completion:^{
+                [self showAlertWithTitle:ok ? @"Success" : @"Failed" message:message];
+            }];
+        });
+    }];
 }
 
 - (BOOL)tableView:(UITableView *)tableView shouldHighlightRowAtIndexPath:(NSIndexPath *)indexPath {
     if (indexPath.section == SectionBackupRestore) return YES;
-    if (indexPath.section == SectionAPIKeys && (indexPath.row == 4 || indexPath.row == 5)) return YES;
+    if (indexPath.section == SectionAPIKeys && (indexPath.row == 5 || indexPath.row == 6)) return YES;
     if (indexPath.section == SectionMedia && (indexPath.row == 0 || indexPath.row == 1 || indexPath.row == 2)) return YES;
     if (indexPath.section == SectionAbout && (indexPath.row == 0 || indexPath.row == 1)) return YES;
     if (indexPath.section == SectionCredits) return YES;
+    if (indexPath.section == SectionNotificationBackend && indexPath.row == 2) return YES;
     return NO;
 }
 
@@ -1032,6 +1135,10 @@ typedef NS_ENUM(NSInteger, Tag) {
         textField.text = [textField.text stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceCharacterSet]];
         sRedditClientId = textField.text;
         [[NSUserDefaults standardUserDefaults] setValue:sRedditClientId forKey:UDKeyRedditClientId];
+    } else if (textField.tag == TagRedditClientSecret) {
+        textField.text = [textField.text stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceCharacterSet]];
+        sRedditClientSecret = textField.text;
+        [[NSUserDefaults standardUserDefaults] setValue:sRedditClientSecret forKey:UDKeyRedditClientSecret];
     } else if (textField.tag == TagImgurClientId) {
         textField.text = [textField.text stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceCharacterSet]];
         sImgurClientId = textField.text;
@@ -1071,6 +1178,18 @@ typedef NS_ENUM(NSInteger, Tag) {
         textField.text = [textField.text stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceCharacterSet]];
         sReadPostMaxCount = [textField.text integerValue];
         [[NSUserDefaults standardUserDefaults] setInteger:sReadPostMaxCount forKey:UDKeyReadPostMaxCount];
+    } else if (textField.tag == TagNotificationBackendURL) {
+        NSString *trimmed = [textField.text stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
+        while ([trimmed hasSuffix:@"/"]) {
+            trimmed = [trimmed substringToIndex:trimmed.length - 1];
+        }
+        textField.text = trimmed;
+        [[NSUserDefaults standardUserDefaults] setValue:trimmed forKey:UDKeyNotificationBackendURL];
+        textField.textColor = [self isNotificationBackendURLValid:trimmed] ? [UIColor labelColor] : [UIColor systemRedColor];
+    } else if (textField.tag == TagNotificationBackendRegistrationToken) {
+        NSString *trimmed = [textField.text stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
+        textField.text = trimmed;
+        [[NSUserDefaults standardUserDefaults] setValue:trimmed forKey:UDKeyNotificationBackendRegistrationToken];
     }
 }
 
@@ -1313,6 +1432,7 @@ static NSString *const kGroupSuiteName = @"group.com.christianselig.apollo";
 
     // Sync in-memory globals with restored values
     sRedditClientId = [defaults stringForKey:UDKeyRedditClientId];
+    sRedditClientSecret = [defaults stringForKey:UDKeyRedditClientSecret] ?: @"";
     sImgurClientId = [defaults stringForKey:UDKeyImgurClientId];
     sRedirectURI = [defaults stringForKey:UDKeyRedirectURI];
     sUserAgent = [defaults stringForKey:UDKeyUserAgent];
