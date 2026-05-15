@@ -77,26 +77,35 @@ echo "Output   : $OUTPUT_IPA"
 if command -v azule >/dev/null 2>&1; then
     echo "Using azule for injection..."
 
-    if azule -i "$IPA_PATH" -f "$DEB_PATH" -o "$OUTPUT_IPA"; then
+    # azule changes its working directory during injection, so relative paths
+    # passed to -f / -i fall through to azule_apt's remote-repo lookup and fail
+    # with "Couldn't find <basename>". Resolve to absolute paths up front.
+    abs_ipa="$(cd "$(dirname "$IPA_PATH")" && pwd)/$(basename "$IPA_PATH")"
+    abs_deb="$(cd "$(dirname "$DEB_PATH")" && pwd)/$(basename "$DEB_PATH")"
+
+    # azule -o expects a directory, not a filename, and writes
+    # "<ipa-stem>+<deb-stem>.ipa" into it. Use a scratch dir, then rename.
+    out_dir="$(dirname "$OUTPUT_IPA")"
+    mkdir -p "$out_dir"
+    abs_out_dir="$(cd "$out_dir" && pwd)"
+    scratch_dir="$(mktemp -d)"
+
+    if azule -i "$abs_ipa" -f "$abs_deb" -o "$scratch_dir" -U; then
+        generated="$(ls -1t "$scratch_dir"/*.ipa 2>/dev/null | head -1 || true)"
+        if [[ -z "$generated" ]]; then
+            echo "Error: azule reported success but produced no IPA."
+            rm -rf "$scratch_dir"
+            exit 1
+        fi
+        mv -f "$generated" "$abs_out_dir/$(basename "$OUTPUT_IPA")"
+        rm -rf "$scratch_dir"
         echo "Injected IPA created at: $OUTPUT_IPA"
         exit 0
     fi
 
-    echo "azule command failed with -o syntax, retrying fallback syntax..."
-    azule -i "$IPA_PATH" -f "$DEB_PATH"
-
-    generated=$(ls -1t ./*.ipa 2>/dev/null | head -1 || true)
-    if [[ -z "$generated" ]]; then
-        echo "Error: azule did not produce an IPA."
-        exit 1
-    fi
-
-    if [[ "$generated" != "$OUTPUT_IPA" ]]; then
-        mv -f "$generated" "$OUTPUT_IPA"
-    fi
-
-    echo "Injected IPA created at: $OUTPUT_IPA"
-    exit 0
+    rm -rf "$scratch_dir"
+    echo "Error: azule injection failed."
+    exit 1
 fi
 
 if command -v cyan >/dev/null 2>&1; then
